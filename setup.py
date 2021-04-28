@@ -38,7 +38,7 @@ setup(
 
     # Here are the packages I want to "build"
     packages=find_packages(
-        where=["modtran"]
+        include=["modtran", "modtran.*"]
     ),
 
     # # Here we specify any package data, if required
