@@ -13,7 +13,7 @@ setup(
     author_email="djs2112@rit.edu",
 
     # Define the version of this library: <Major Version>.<Minor Version>.<Maintenance Version>
-    version="0.1.0",
+    version="0.2.0",
 
     # Here is a small description of the library.  This appears
     # when someone searches for the library on https://pypi.org/search
