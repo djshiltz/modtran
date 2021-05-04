@@ -1,7 +1,7 @@
 from getpass import getpass
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-mpl.use('Qt5Agg')  # or can use 'TkAgg', whatever you have/prefer
+#mpl.use('Qt5Agg')  # or can use 'TkAgg', whatever you have/prefer
 import modtran
 
 #  Type help(modtran.run) to print documentation

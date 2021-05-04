@@ -769,7 +769,7 @@ def run(username: str,                         # CIS username
 
     with open('tape7.scn') as file:
         tape7scn = file.readlines()
-    output['tape7.scn'] = tape7scn
+    output['tape7.scn'] = ''.join(tape7scn)
     os.remove('tape7.scn')
 
     num_lines = len(tape7scn)
