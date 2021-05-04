@@ -3,14 +3,14 @@ import paramiko
 import subprocess
 import os
 import time
-#from modtran.formats import A, I, F
+from modtran.formats import A, I, F
 
 
 def run(username: str,                         # CIS username
         password: str,                         # CIS password
         hostname: str = 'grissom.cis.rit.edu', # Name of CIS host
 
-        # MODTRAN ARGUMENTS
+        # DEFAULT ARGUMENTS
         MODTRN : str   = 'M',    # MODTRAN band model
         SPEED  : str   = 'S',    # S (slow, 33 abs coef), M (medium, 17 abs coef)
         MODEL  : int   = 2,      # 0-8 (the model atmosphere, 2 is MLS)
@@ -60,6 +60,7 @@ def run(username: str,                         # CIS username
 
     hostname : str
         Name of CIS host
+        Default setting is grissom.cis.rit.edu
     __________________________________________________________________________________________
 
     Keyword Arguments:
@@ -70,13 +71,13 @@ def run(username: str,                         # CIS username
             'C' or 'K' - MODTRAN band model (with correlated-k treatment)
             'F' or 'L' - LOWTRAN band model (not recommended except for quick
                          historical comparisons)
-            Default setting is 'M'
+        Default setting is 'M'
 
     SPEED : str
         Speed of correlated-k treatment
             'S' or '' - slow speed using 33 absorption coefficients per spectral band
             'M' - medium speed using 17 absorption coefficients
-            Default setting is 'M'
+        Default setting is 'S'
 
     MODEL : int
         Atmospheric model from a list of pre-defined templates:
@@ -86,13 +87,12 @@ def run(username: str,                         # CIS username
             4 - sub-arctic summer (60 deg N)
             5 - sub-arctic winter (60 deg N)
             6 - 1976 US Standard Atmosphere
-        Note: user-defined atmospheres (options 0, 7, 8) are not currently
-            supported by this API.
+        Note: user-defined atmospheres (options 0, 7, 8) are not currentl supported by this API.
         Default setting is 2
 
     TPTEMP : float
         Temperature [K] of target (i.e. usually the ground)
-        Default setting is 294.0 (70F)
+        Default setting is 294.0
 
     SURREF : float
         Surface reflectance (albedo)
@@ -123,7 +123,7 @@ def run(username: str,                         # CIS username
             'g' + str(number) - water vapor is set to number [g/cm2]
             'a' + str(number) - water vapor is set to number [ATM-cm]
             str(number) - uses MODTRAN's default water vapor column scaled by number
-            Default setting is '0'
+        Default setting is '0'
 
     O3STR : str
         Vertical ozone column character string
@@ -131,7 +131,7 @@ def run(username: str,                         # CIS username
             'g' + str(number) - ozone is set to number [g/cm2]
             'a' + str(number) - ozone is set to number [ATM-cm]
             str(number) - uses MODTRAN's default water vapor column scaled by number
-            Default setting is '0'
+        Default setting is '0'
 
     IHAZE : int
         Aerosol extinction model from a list of pre-defined templates
@@ -304,222 +304,272 @@ def run(username: str,                         # CIS username
 
     output : dict
         Output dictionary with the following keys:
-            # TODO: add key labels
+            'tape5'         - input text file
+            'tape7.scn'     - output text file (convolved with scanning function)
+            'WAVELEN MCRN'  - wavelength [micron]
+            'TRANS'         - transmission along direct path between target H2 and sensor H1 [unitless]
+            'PTH THRML'     - blackbody radiance thermally emitted from atmosphere
+                                  toward observer [W/cm2/sr/micron]
+            'THRML SCT'     - blackbody radiance thermally emitted from target surface
+                                  and scattered from atmosphere and background towards
+                                  observer [W/cm2/sr/micron]
+            'SURF EMIS'     - blackbody radiance thermally emitted from target surface
+                                  toward observer [W/cm2/sr/micron]
+            'SOL SCAT'      - solar radiance scattered from atmosphere and background
+                                  toward observer [W/cm2/sr/micron]
+            'SING SCAT'     - solar radiance scattered once from atmosphere toward
+                                  observer [W/cm2/sr/micron]
+            'GRND RFLT'     - direct and indirect solar radiance reflected from
+                                  from target toward observer [W/cm2/sr/micron]
+            'DRCT RFLT'     - direct solar radiance reflected from target
+                                  toward observer [W/cm2/sr/micron]
+            'TOTAL RAD'     - total radiance (all sources) toward
+                                  observer [W/cm2/sr/micron]
+            'REF SOL'       - # TODO: define 'REF SOL'
+            'SOL@OBS'       - # TODO: define 'SOL@OBS'
+            'DEPTH'         - # TODO: define 'DEPTH'
+    """
 
-    __________________________________________________________________________________________
-
-    Fixed MODTRAN Parameters (hidden from user to prevent unintended behavior)
+    # Define fixed MODTRAN Parameters (hidden from user to
+    # prevent unintended behavior)
 
     ITYPE : int = 2
-        Vertical or slant path between two arbitrary altitudes
+    """
+    Vertical or slant path between two arbitrary altitudes
+    """
 
     IEMSCT : int = 2
-        Radiance mode, includes solar/lunar radiance
+    """
+    Radiance mode, includes solar/lunar radiance
+    """
 
     IMULT : int = -1
-        Multiple scattering enabled - solar geometry w/r to H2 (target/ground)
+    """
+    Multiple scattering enabled - solar geometry is w/r to H2 (target/ground)
+    """
 
-    M1, M2, M3, M4, M5, M6 : int = 0
-        Uses the default atmospheric constituents for the corresponding
-        MODEL atmosphere
+    M1, M2, M3, M4, M5, M6 = [0, 0, 0, 0, 0, 0]
+    """
+    Uses the default atmospheric constituents for the corresponding
+    MODEL atmosphere
+    """
 
     MDEF : int = 1
-        Default heavy species profiles are used (user-defined heavy species
-        profiles are not supported by this API)
+    """
+    Default heavy species profiles are used (user-defined heavy species
+    profiles are not supported by this API)
+    """
 
     IM : int = 0
-        Normal operation (user-defined atmospheres are not supported by this
-        API)
+    """
+    Normal operation (user-defined atmospheres are not supported by this API)
+    """
 
     NOPRNT : int = 0
-        Normal tape6 output
+    """
+    Normal tape6 output
+    """
 
     LSUN : str = 'T'
-        Read in 1 cm-1 binned solar irradiance from a file (e.g. in DATA)
+    """
+    Read in 1 cm-1 binned solar irradiance from a file (see LSUNFL)
+    """
 
     ISUN : int = 10
-        The full-width-half-maximum (in cm-1) of the triangular scanning function
-        used to smooth the top-of-atmosphere solar irradiance
+    """
+    The full-width-half-maximum (in cm-1) of the triangular scanning function
+    used to smooth the top-of-atmosphere solar irradiance
+    """
 
     LSUNFL : str = 'F'
-        Use the default solar radiance file, DATA/newkur.dat
+    """
+    Use the default solar radiance file, DATA/newkur.dat
+    """
 
     LBMNAM : str = 'F'
-        Use the default band model file, DATA/B2001_01.BIN
+    """
+    Use the default band model file, DATA/B2001_01.BIN
+    """
 
     LFLTNM : str = 'F'
-        Do not read in user-defined instrument filter function
+    """
+    Do not read in user-defined instrument filter function
+    """
 
     H2OAER : str = 'T'
-        Aerosol optical properties are modified to reflect the changes
-        from the original relative humidity profile arising from the
-        scaling of the water column (H2OSTR).
+    """
+    Aerosol optical properties are modified to reflect the changes
+    from the original relative humidity profile arising from the
+    scaling of the water column (H2OSTR).
+    """
 
-    LDATDR : str = 'F'
-        Use the default data directory: DATA/
+    LDATDR : str = ''
+    """
+    Use the default data directory: DATA/
+    Note that 'F' returns a read error for some reason, so keep this as ''
+    """
 
     SOLCON : int = 0
-        Do not scale the TOA solar irradiance
+    """
+    Do not scale the TOA solar irradiance
+    """
 
     APLUS : str = ''
-        Do not include user-specified aerosol optical properties (not currently
-        supported by this API)
+    """
+    Do not include user-specified aerosol optical properties (not currently
+    supported by this API)
+    """
 
     ARUSS : str = ''
-        Do not use user-supplied aerosol spectra (not currently supported by this
-        API).
+    """
+    Do not use user-supplied aerosol spectra (not currently supported by this API).
+    """
 
     ICLD : int = 0
-        Cloud/rain model
-            0 - no clouds or rain
-            1 - cumulus cloud layer, base = 0.66 km, top = 3.0 km
-            2 - altostratus cloud layer, base = 2.4 km, top = 3.0 km
-            3 - stratus cloud layer, base = 0.33 km, top = 3.0 km
-            4 - stratus/stratocumulus layer, base = 0.66 km, top = 2.0 km
-            5 - nimbostratus cloud layer, base = 0.16 km, top = 0.66 km
-            6 - 2.0 mm/hr ground drizzle (cloud 3)
-            7 - 5.0 mm/hr ground light rain (cloud 5)
-            8 - 12.5 mm/hr ground moderate rain (cloud 5)
-            9 - 25.0 mm/hr ground heavy rain (cloud 1)
-            10 - 75.0 mm/hr ground extreme rain (cloud 1)
-            11 = user defined cloud extinction
-            18 - standard cirrus model
-            19 - sub-visual cirrus model
-            Note: options 12-17 are not used by MODTRAN.
-            Note: since cloud models > 0 require card 2A and I can't find documentation about
-            the format of card 2A, I'm disabling cloud models.
+    """
+    Cloud/rain model
+        0 - no clouds or rain
+        1 - cumulus cloud layer, base = 0.66 km, top = 3.0 km
+        2 - altostratus cloud layer, base = 2.4 km, top = 3.0 km
+        3 - stratus cloud layer, base = 0.33 km, top = 3.0 km
+        4 - stratus/stratocumulus layer, base = 0.66 km, top = 2.0 km
+        5 - nimbostratus cloud layer, base = 0.16 km, top = 0.66 km
+        6 - 2.0 mm/hr ground drizzle (cloud 3)
+        7 - 5.0 mm/hr ground light rain (cloud 5)
+        8 - 12.5 mm/hr ground moderate rain (cloud 5)
+        9 - 25.0 mm/hr ground heavy rain (cloud 1)
+        10 - 75.0 mm/hr ground extreme rain (cloud 1)
+        11 = user defined cloud extinction
+        18 - standard cirrus model
+        19 - sub-visual cirrus model
+        Note: options 12-17 are not used by MODTRAN.
+        Note: since cloud models > 0 require card 2A and I can't find documentation about
+        the format of card 2A, I'm disabling cloud models.
+    """
 
     RANGE : float = 0.0
-        Path length [km] between H1 and H2
-        Set to 0.0 to force CASE 2a (p. 53 of manual)
+    """
+    Path length [km] between H1 and H2
+    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    """
 
     BETA : float = 0.0
-        Earth-center angle [deg] subtended by H1 and H2
-        Set to 0.0 to force CASE 2a (p. 53 of manual)
+    """
+    Earth-center angle [deg] subtended by H1 and H2
+    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    """
 
     RO : str = ''
-        Radius of the earth [km]
-        Set to '' for default
+    """
+    Radius of the earth [km]
+    Set to '' for default
+    """
 
     LENN : int = 1
-        0 - short
-        1 - long (extends through the tangent height)
+    """
+    0 - short (stops at tangent height)
+    1 - long (extends through the tangent height)
+    """
 
     PHI : float = 0.0
-        Zenith angle [deg] measured from H2 toward H1
-        Set to 0.0 to force CASE 2a (p. 49 of manual)
+    """
+    Zenith angle [deg] measured from H2 toward H1
+    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    """
 
     IPARM : int = 12
-        Method of specifying geometry
-        Set to 12 so that the parameters are:
-            PARM1 - solar/lunar azimuth
-            PARM2 - solar/lunar zenith
-            PARM3 - not used
-            PARM4 - not used
-            TIME - not used
-            PSIPO - not used
+    """
+    Method of specifying geometry
+    Set to 12 so that the parameters are:
+        PARM1 - solar/lunar azimuth [deg]
+        PARM2 - solar/lunar zenith [deg]
+        PARM3 - not used
+        PARM4 - not used
+        TIME - not used
+        PSIPO - not used
+    """
 
-    PARM3 : str = ''
-        Not used for IPARM = 12
+    PARM3 : float = 0.0
+    """
+    Not used for IPARM = 12
+    """
 
-    PARM4 : str = ''
-        Not used for IPARM = 12
+    PARM4 : float = 0.0
+    """
+    Not used for IPARM = 12
+    """
 
-    TIME : str = ''
-        Not used for IPARM = 12
+    TIME : float = 0.0
+    """
+    Not used for IPARM = 12
+    """
 
-    PSIPO : str = ''
-        Not used for IPARM = 12
+    PSIPO : float = 0.0
+    """
+    Not used for IPARM = 12
+    """
 
     FWHM : float = 2 * DV
-        Full-width-half-maximum for output smoothing kernel (scanning function)
+    """
+    Full-width-half-maximum for output smoothing kernel (scanning function)
+    MODTRAN manual recommends DV = FWHM / 2.
+    Usually the user will want to specify DV, so this satisfies that recommendation.
+    """
 
     YFLAG : str = 'R'
-        Radiance output in PLTOUT
+    """
+    Radiance output in PLTOUT
+    """
 
     XFLAG : str = 'M'
-        Micron units used in PLTOUT
+    """
+    Micron units used in PLTOUT
+    """
 
     DLIMIT : str = ''
-        Not needed - used to separate output from multiple MODTRAN runs
+    """
+    Not needed - used to separate output from multiple MODTRAN runs
+    """
 
     FLAGS : str = 'MRAA   '
-        String of characters indicating:
-            1 - ' ' defaults to 'W'
-                'W' spectral units in wavenumbers
-                'M' spectral units in microns
-                'N' spectral units in nanometers
-            2 - ' ' defaults to 'T'
-                'T' tri
-                'R' rect
-                'G' gauss
-                'S' sinc
-                'C' sinc2
-                'H' Hamming
-                'U' user-supplied
-            3 - ' ' defaults to 'A'
-                'A' FWHM is absolute
-                'R' FWHM is percent relative
-            4 - ' ' degrade only total radiance and transmittance
-                'A' degrade all radiance and transmittance components
-            5 - ' ' do not save current results
-                'S' save non-degraded results for degrading later
-            6 - ' ' do not use saved results
-                'R' use saved results for degrading with the current slit function
-            7 - ' ' do not write spectral flux table
-                'T' write a specflux file limited to 80 characters per line
-                'F' write a specflux file with all flux values on a single line
+    """
+    String of characters indicating:
+        1 - ' ' defaults to 'W'
+            'W' spectral units in wavenumbers
+            'M' spectral units in microns
+            'N' spectral units in nanometers
+        2 - ' ' defaults to 'T'
+            'T' tri
+            'R' rect
+            'G' gauss
+            'S' sinc
+            'C' sinc2
+            'H' Hamming
+            'U' user-supplied
+        3 - ' ' defaults to 'A'
+            'A' FWHM is absolute
+            'R' FWHM is percent relative
+        4 - ' ' degrade only total radiance and transmittance
+            'A' degrade all radiance and transmittance components
+        5 - ' ' do not save current results
+            'S' save non-degraded results for degrading later
+        6 - ' ' do not use saved results
+            'R' use saved results for degrading with the current slit function
+        7 - ' ' do not write spectral flux table
+            'T' write a specflux file limited to 80 characters per line
+            'F' write a specflux file with all flux values on a single line
+    """
 
     MLFLX : int = 0
-        Number of atmospheric levels for which specflux is output.  Blank or 0 indicates
-        that all atmospheric levels will be output
+    """
+    Number of atmospheric levels for which specflux is output.  Blank or 0 indicates
+    that all atmospheric levels will be output
+    """
 
     IRPT : int = 0
-        Number of repeated runs
     """
-    output = {}
-
-    # DEFINE FIXED MODTRAN PARAMETERS:
-    ITYPE = 2
-    IEMSCT = 2
-    IMULT = -1
-    M1 = 0
-    M2 = 0
-    M3 = 0
-    M4 = 0
-    M5 = 0
-    M6 = 0
-    MDEF = 1
-    IM = 0
-    NOPRNT = 0
-    LSUN = 'T'
-    ISUN = 10
-    LSUNFL = 'F'
-    LBMNAM = 'F'
-    LFLTNM = 'F'
-    H2OAER = 'T'
-    LDATDR = ''
-    SOLCON = 0
-    APLUS = ''
-    ARUSS = ''
-    ICLD = 0
-    RANGE = 0.0
-    BETA = 0.0
-    RO = ''
-    LENN = 1
-    PHI = 0.0
-    IPARM = 12
-    PARM3 = 0.0
-    PARM4 = 0.0
-    TIME = 0.0
-    PSIPO = 0.0
-    FWHM = 2 * DV
-    YFLAG = 'R'
-    XFLAG = 'M'
-    DLIMIT = ''
-    FLAGS = 'MRAA   '
-    MLFLX = 0
-    IRPT = 0
+    Number of repeated runs
+    """
 
     # Construct array of all inputs, including fixed MODTRAN inputs
     card1 = np.array([
@@ -588,7 +638,7 @@ def run(username: str,                         # CIS username
         [ANGLE,      'ANGLE',     float,    (10, 5), True],
         [RANGE,      'RANGE',     float,    (10, 5), True],
         [BETA,       'BETA',      float,    (10, 5), BETA >= 0 and BETA <= 180],
-        [RO,         'RO',        str,      10, True],
+        [RO,         'RO',        str,      10,      True],
         [LENN,       'LENN',      int,      5,       LENN in [0, 1]],
         ['     ',    'space',     str,      5,       True],
         [PHI,        'PHI',       float,    (10, 5), PHI >=0 and PHI <= 180]
@@ -606,10 +656,10 @@ def run(username: str,                         # CIS username
         #VARIABLE      NAME       TYPE      SIZE      CONDITION
         [PARM1,       'PARM1',    float,    (10, 3), PARM1 >= 0 and PARM1 <= 360],
         [PARM2,       'PARM2',    float,    (10, 3), PARM2 >= 0 and PARM2 <= 180],
-        [PARM3,       'PARM3',    float,    (10, 3),      True],
-        [PARM4,       'PARM4',    float,    (10, 3),      True],
-        [TIME,        'TIME',     float,    (10, 3),      True],
-        [PSIPO,       'PSIPO',    float,    (10, 3),      True],
+        [PARM3,       'PARM3',    float,    (10, 3), True],
+        [PARM4,       'PARM4',    float,    (10, 3), True],
+        [TIME,        'TIME',     float,    (10, 3), True],
+        [PSIPO,       'PSIPO',    float,    (10, 3), True],
         [ANGLEM,      'ANGLEM',   float,    (10, 3), ANGLEM >= 0 and ANGLEM <= 180],
         [G,           'G',        float,    (10, 3), G >= 0 and G <= 1]
     ], dtype=object)
@@ -664,6 +714,7 @@ def run(username: str,                         # CIS username
     for card in [card1, card1a, card2, card3, card3a1, card3a2, card4, card5]:
         tape5 += add_to_tape5(card)
         tape5 += "\n"
+    output = {}
     output['tape5'] = tape5
 
     ####################################################################################################################
@@ -678,7 +729,7 @@ def run(username: str,                         # CIS username
     sftp = ssh.open_sftp()
 
     # Create a temporary directory called 'modtran-temp' and put the tape5 file in there
-    stdin, stdout, stderr = ssh.exec_command('rm -rf modtran-temp')  # in case user cntrl-c'd out of last run
+    stdin, stdout, stderr = ssh.exec_command('rm -rf modtran-temp')  # in case the user cntrl-c'd out of last run
     time.sleep(1)
     sftp.mkdir('modtran-temp')
     sftp.chdir('modtran-temp')
@@ -691,6 +742,8 @@ def run(username: str,                         # CIS username
     tape5_file.close()
 
     print('RUNNING MODTRAN...')
+    if MODTRN in ['C', 'K']:
+        print('    NOTE: CORRELATED K OPTION ENABLED - THIS COULD TAKE A WHILE...')
     stdin, stdout, stderr = ssh.exec_command('cd ' + remote_temp_folder + ';'
                                              '/dirs/pkg/Mod4v3r1/Mod4v3r1.exe;',
                                              get_pty=True)
@@ -764,49 +817,3 @@ def run(username: str,                         # CIS username
     output['DEPTH']        = data_values[:,12]
 
     return output
-
-
-def A(text, n):
-    '''
-    Re-formats the string 'text' to an n-length string, right-justified
-    '''
-    if type(text) != str:
-        raise TypeError("Argument " + str(text) + " must be a string")
-    L = len(text)
-    if L > n:
-        raise ValueError("Cannot re-format argument '" + text + "' to " + str(n) + "-length string")
-    else:
-        return ' ' * (n - L) + text
-
-
-def I(integer, n):
-    '''
-    Re-formats an integer to an n-length string, right justified
-    '''
-    if type(integer) != int:
-        raise TypeError("Argument " + str(integer) + " must be an integer")
-    L = len(str(integer))
-    if L > n:
-        raise ValueError("Cannot re-format argument '" + str(integer) + "' to " + str(n) + "-length string")
-    else:
-        return ' ' * (n - L) + str(integer)
-
-
-def F(number, n, d):
-    '''
-    Re-formats a number (integer or float) to an n-length string with d decimal places, right-justified
-    '''
-    if (type(number) != float and type(number) != int):
-        raise TypeError("Argument " + str(number) + " must be a float or integer")
-    num, dec = str(number).split('.')
-    if len(dec) > d:  # truncate
-        print("WARNING: truncating " + str(number) + " to " + str(d) + " decimal places")
-    elif len(dec) < d:  # add trailing zeros
-        dec += '0' * (d - len(dec))
-    number_truncated = num + '.' + dec[:d]
-    L = len(number_truncated)
-    if L > n:
-        raise ValueError("Cannot re-format argument '" + str(number) + "' to " + str(n) + "-length string " +\
-                          "with " + str(d) + " decimal places")
-    else:
-        return ' ' * (n - L) + number_truncated
