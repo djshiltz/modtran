@@ -450,13 +450,13 @@ def run(username: str,                         # CIS username
     RANGE : float = 0.0
     """
     Path length [km] between H1 and H2
-    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    Set to 0.0 to force CASE 2a (p. 49 of manual)
     """
 
     BETA : float = 0.0
     """
     Earth-center angle [deg] subtended by H1 and H2
-    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    Set to 0.0 to force CASE 2a (p. 49 of manual)
     """
 
     RO : str = ''
@@ -474,7 +474,7 @@ def run(username: str,                         # CIS username
     PHI : float = 0.0
     """
     Zenith angle [deg] measured from H2 toward H1
-    Set to 0.0 to force CASE 2a (p. 53 of manual)
+    Set to 0.0 to force CASE 2a (p. 49 of manual)
     """
 
     IPARM : int = 12
