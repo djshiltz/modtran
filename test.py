@@ -8,6 +8,7 @@ import modtran
 output = modtran.run(username=input('Enter CIS username: '),
                      password=getpass(prompt='Enter CIS password: '),
                      SURREF=0.1,
+                     ISOURC=0,
                      )
 
 # output is a dictionary that includes the tape5 and tape7.scn files, as well

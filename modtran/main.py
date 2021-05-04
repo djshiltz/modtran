@@ -38,7 +38,7 @@ def run(username: str,                         # CIS username
         ANGLE  : float = 180.0,  # zenith angle from sensor to target
         IPH    : int   = 2,      # phase function
         IDAY   : int   = 93,     # day of the year
-        ISOURCE: int   = 0,      # 0 for sun, 1 for moon
+        ISOURC : int   = 0,      # 0 for sun, 1 for moon
         PARM1  : float = 0.0,    # solar azimuth [deg E of N]
         PARM2  : float = 0.0,    # solar zenith [deg]
         ANGLEM : float = 0.0,    # phase of the moon (0 full, 180 none)
@@ -649,7 +649,7 @@ def run(username: str,                         # CIS username
         [IPARM,       'IPARM',    int,      5,       IPARM in [12]],
         [IPH,         'IPH',      int,      5,       IPH in [0, 2]],
         [IDAY,        'IDAY',     int,      5,       IDAY in range(1, 366)],
-        [ISOURCE,     'ISOURCE',  int,      5,       ISOURCE in [0, 1]],
+        [ISOURC,     'ISOURC',  int,      5,       ISOURC in [0, 1]],
     ], dtype=object)
 
     card3a2 = np.array([
